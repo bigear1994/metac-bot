@@ -1,0 +1,56 @@
+name: Forecast on new AI tournament questions
+
+on:
+  workflow_dispatch:
+  # REAL-Tournament schedule: DISABLED until the owner approves competition
+  # entry. Uncomment the two lines below (and keep ALLOW_PUBLISH: "yes" in the
+  # env section) to start competing, then commit — that commit is the switch.
+  # schedule:
+  #   - cron: "7,27,47 * * * *" # every 20 min. Skips already-forecasted questions.
+
+# Add concurrency group to prevent parallel runs
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+
+# Daily job to run the simple forecast bot
+jobs:
+  forecast_job:
+    runs-on: ubuntu-latest # determines the machine that will run the job - keep as is
+    steps: # sets up the steps that will be run in order
+      # setup repository with all necessary dependencies - keep as is
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.3.0
+        with:
+          version: "0.13.1"
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Run bot
+        run: |
+          uv run python main.py --mode tournament --publish
+        # this reads the environment variables from the github repository.
+        # Store under Settings --> Secrets and variables --> Actions
+        env:
+          # ALLOW_PUBLISH is the human-approved switch for REAL tournaments.
+          # Keep it "yes" only after explicit approval; remove it to fall back
+          # to dry-run (the bot then refuses to publish to tournaments).
+          ALLOW_PUBLISH: "yes"
+          METACULUS_TOKEN: ${{ secrets.METACULUS_TOKEN }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          # LLM routing (matches local .env; via repo secrets)
+          DEFAULT_LLM_MODEL: ${{ secrets.DEFAULT_LLM_MODEL }}
+          DEFAULT_LLM_API_BASE: ${{ secrets.DEFAULT_LLM_API_BASE }}
+          DEFAULT_LLM_API_KEY: ${{ secrets.DEFAULT_LLM_API_KEY }}
+          PREDICTIONS_PER_QUESTION: "3"
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+          EXA_API_KEY: ${{ secrets.EXA_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ASKNEWS_CLIENT_ID: ${{ secrets.ASKNEWS_CLIENT_ID }}
+          ASKNEWS_SECRET: ${{ secrets.ASKNEWS_SECRET }}
