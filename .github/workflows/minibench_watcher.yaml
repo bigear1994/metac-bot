@@ -1,0 +1,49 @@
+name: MiniBench round watcher
+
+# Cloud-side round-open detector: runs twice daily on GitHub's runners (no
+# local machine needed). Deliberately FAILS when a new MiniBench round opens,
+# because GitHub emails the repo owner on scheduled-run failure - turning the
+# failure-email channel into the round-open notification. API errors exit 0
+# with a warning instead, so transient problems never spam the owner.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 1,13 * * *" # 09:17 & 21:17 Beijing time
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check MiniBench open questions
+        env:
+          METACULUS_TOKEN: ${{ secrets.METACULUS_TOKEN }}
+        run: |
+          python - <<'EOF'
+          import json, os, sys, urllib.request
+
+          tok = os.environ["METACULUS_TOKEN"]
+          req = urllib.request.Request(
+              "https://www.metaculus.com/api/posts/?tournaments=minibench&statuses=open&limit=20",
+              headers={"Authorization": f"Token {tok}", "User-Agent": "metac-bot-watcher"})
+          try:
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  posts = json.loads(r.read().decode("utf-8"))["results"]
+          except Exception as e:
+              print(f"::warning::API check failed ({e}); exiting 0 to avoid email spam")
+              sys.exit(0)
+
+          forecasting = [p for p in posts if p.get("question")]
+          print(f"open forecasting posts in minibench: {len(forecasting)}")
+          if forecasting:
+              for p in forecasting[:10]:
+                  q = p.get("question") or {}
+                  print(f"OPEN: [{p.get('id')}] {str(p.get('title'))[:70]} | closes {q.get('scheduled_close_time')}")
+              print("::error::MiniBench round is OPEN - time to deploy the bot (owner approval required)")
+              sys.exit(1)
+          print("no open questions; round not started yet")
+          EOF
