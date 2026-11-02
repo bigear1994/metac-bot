@@ -8,8 +8,13 @@ name: MiniBench round watcher
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "17 1,13 * * *" # 09:17 & 21:17 Beijing time
+  # DISABLED 2026-11-02: mission accomplished - this watcher detected the new
+  # round opening on its very first run (6 questions found, bot deployed and
+  # submitted within the hour). Keeping it enabled would email the owner
+  # twice daily while the round runs. Re-enable between rounds to catch the
+  # next opening.
+  # schedule:
+  #   - cron: "17 1,13 * * *" # 09:17 & 21:17 Beijing time
 
 concurrency:
   group: ${{ github.workflow }}
