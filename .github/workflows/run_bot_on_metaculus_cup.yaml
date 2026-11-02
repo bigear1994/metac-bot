@@ -2,8 +2,14 @@ name: Forecast on Metaculus Cup
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 0 */2 * *" # runs at midnight every 2 days
+  # DISABLED 2026-11-02: this live cron fired 3 failing scheduled runs
+  # (Oct 29/31, Nov 1) — the workflow has no DEFAULT_LLM_* routing, so the
+  # bot fell back to OpenRouter (zero balance) and every question failed.
+  # Metaculus Cup is also prize-ineligible for bots. Re-enable only with
+  # owner approval AND an LLM route configured. Same policy as the
+  # tournament workflow cron.
+  # schedule:
+  #   - cron: "0 0 */2 * *" # runs at midnight every 2 days
 
 # Add concurrency group to prevent parallel runs
 concurrency:
