@@ -753,16 +753,19 @@ if __name__ == "__main__":
             extra["api_base"] = os.environ["DEFAULT_LLM_API_BASE"]
         if os.getenv("DEFAULT_LLM_API_KEY"):
             extra["api_key"] = os.environ["DEFAULT_LLM_API_KEY"]
+        # 600s accommodates subscription-CLI backends (K3/Gemini think long);
+        # fast API endpoints finish well under it.
+        llm_timeout = int(os.getenv("LLM_TIMEOUT_S", "600"))
         default_llm = GeneralLlm(
             model=os.environ["DEFAULT_LLM_MODEL"],
-            timeout=300,
+            timeout=llm_timeout,
             allowed_tries=2,
             **extra,
         )
         llms_override["default"] = default_llm
         parser_model = os.getenv("PARSER_LLM_MODEL") or os.environ["DEFAULT_LLM_MODEL"]
         llms_override["parser"] = GeneralLlm(
-            model=parser_model, timeout=300, allowed_tries=2, **extra
+            model=parser_model, timeout=llm_timeout, allowed_tries=2, **extra
         )
         llms_override["summarizer"] = default_llm
         llms_override["researcher"] = os.getenv("RESEARCHER_MODE", "no_research")
